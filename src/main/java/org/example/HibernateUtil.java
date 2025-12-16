@@ -1,4 +1,4 @@
-package org.example.utils;
+package org.example;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -8,10 +8,8 @@ public class HibernateUtil {
 
     private static SessionFactory buildSessionFactory() {
         try {
-            // Создает SessionFactory из hibernate.cfg.xml
             return new Configuration().configure().buildSessionFactory();
         } catch (Throwable ex) {
-            // Обработка любых ошибок, возникших при создании SessionFactory
             System.err.println("Initial SessionFactory creation failed." + ex);
             throw new ExceptionInInitializerError(ex);
         }
@@ -22,7 +20,6 @@ public class HibernateUtil {
     }
 
     public static void shutdown() {
-        // Закрывает SessionFactory, освобождая ресурсы
         getSessionFactory().close();
     }
 }

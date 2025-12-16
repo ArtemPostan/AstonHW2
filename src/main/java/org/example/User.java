@@ -16,23 +16,19 @@ public class User {
     @Column(name = "user_email", unique = true, nullable = false)
     private String email;
 
-
-
     @Column(name = "user_age")
     private Integer age;
 
-    @Column(name = "created_at", updatable = false) // updatable = false гарантирует, что поле не будет изменено при UPDATE
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // Конструктор для создания нового пользователя
     public User(String name, String email, Integer age) {
         this.name = name;
         this.email = email;
         this.age = age;
-        this.createdAt = LocalDateTime.now(); // Устанавливаем текущее время при создании
+        this.createdAt = LocalDateTime.now();
     }
 
-    // Пустой конструктор (требуется JPA)
     public User() {
         this.createdAt = LocalDateTime.now();
     }
@@ -40,7 +36,6 @@ public class User {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    // Пример для name:
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

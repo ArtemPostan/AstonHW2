@@ -11,10 +11,7 @@
         <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/postgres</property>
         <property name="hibernate.connection.username">postgres</property>
         <property name="hibernate.connection.password">root</property>
-
-        <property name="hibernate.show_sql">true</property>
-        <property name="hibernate.format_sql">true</property>
-        <property name="hibernate.hbm2ddl.auto">create-drop</property> <mapping class="org.example.User"/>
+        <property name="hibernate.hbm2ddl.auto">create</property> <mapping class="org.example.User"/>
 
     </session-factory>
 </hibernate-configuration>

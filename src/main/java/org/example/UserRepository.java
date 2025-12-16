@@ -1,13 +1,13 @@
 package org.example;
 
-import org.example.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import java.util.List;
+import org.hibernate.exception.ConstraintViolationException;
+import org.postgresql.util.PSQLException;
 
 public class UserRepository {
 
-    // --- 1. CREATE (Создание) ---
     public void save(User user) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction transaction = null;
@@ -15,7 +15,21 @@ public class UserRepository {
             transaction = session.beginTransaction();
             session.persist(user);
             transaction.commit();
-        } catch (Exception e) {
+
+        } catch (ConstraintViolationException e) {
+            // 1. Обработка нарушения ограничений
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            if (e.getCause() instanceof PSQLException) {
+                PSQLException psqlException = (PSQLException) e.getCause();
+                if ("23505".equals(psqlException.getSQLState())) {
+                    throw new DataIntegrityViolationException("Пользователь с таким Email уже существует.", e);
+                }
+            }
+            throw new DataIntegrityViolationException("Нарушение ограничения целостности данных.", e);
+        }
+        catch (Exception e) {
             if (transaction != null) {
                 transaction.rollback();
             }
@@ -25,12 +39,10 @@ public class UserRepository {
         }
     }
 
-    // --- 2. READ (Чтение по ID) ---
     public User findById(Long id) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         User user = null;
         try {
-            // Для чтения транзакция не нужна, но используем try-finally для закрытия сессии
             user = session.get(User.class, id);
         } catch (Exception e) {
             throw new RuntimeException("Error retrieving user with ID: " + id, e);
@@ -40,11 +52,9 @@ public class UserRepository {
         return user;
     }
 
-    // --- 2. READ (Чтение всех) ---
     public List<User> findAll() {
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
-            // Используем HQL для запроса всех объектов User
             return session.createQuery("from User", User.class).getResultList();
         } catch (Exception e) {
             throw new RuntimeException("Error retrieving all users", e);
@@ -53,14 +63,12 @@ public class UserRepository {
         }
     }
 
-    // --- 3. UPDATE (Обновление) ---
     public User update(User user) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction transaction = null;
         User updatedUser = null;
         try {
             transaction = session.beginTransaction();
-            // Используем merge для обновления Detached-объекта
             updatedUser = session.merge(user);
             transaction.commit();
         } catch (Exception e) {
@@ -74,13 +82,11 @@ public class UserRepository {
         return updatedUser;
     }
 
-    // --- 4. DELETE (Удаление) ---
     public void delete(Long id) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction transaction = null;
         try {
             transaction = session.beginTransaction();
-            // Сначала получаем объект, чтобы убедиться, что он присоединен или существует
             User userToDelete = session.get(User.class, id);
 
             if (userToDelete != null) {
