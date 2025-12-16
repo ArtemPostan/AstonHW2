@@ -1,6 +1,5 @@
 package org.example;
 
-import org.example.HibernateUtil;
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
