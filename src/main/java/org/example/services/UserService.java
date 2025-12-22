@@ -1,18 +1,19 @@
-package org.example;
+package org.example.services;
+
+import lombok.RequiredArgsConstructor;
+import org.example.models.User;
+import org.example.repository.UserRepository;
+import org.example.util.HibernateUtil;
 
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository repository;
     private final Scanner scanner;
-
-    public UserService() {
-        this.repository = new UserRepository();
-        this.scanner = new Scanner(System.in);
-    }
 
     public void start() {
         int choice = -1;
@@ -78,7 +79,7 @@ public class UserService {
         int age = scanner.nextInt();
         scanner.nextLine();
 
-        User user = new User(name, email, age);
+        User user = User.builder().name(name).email(email).age(age).build();
         repository.save(user);
         System.out.println("Пользователь успешно создан. ID: " + user.getId());
     }

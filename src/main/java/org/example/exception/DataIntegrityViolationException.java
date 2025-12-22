@@ -1,4 +1,4 @@
-package org.example;
+package org.example.exception;
 
 /**
  * Исключение, указывающее на нарушение ограничений целостности данных

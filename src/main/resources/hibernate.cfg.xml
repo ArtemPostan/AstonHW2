@@ -11,7 +11,8 @@
         <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/postgres</property>
         <property name="hibernate.connection.username">postgres</property>
         <property name="hibernate.connection.password">root</property>
-        <property name="hibernate.hbm2ddl.auto">create</property> <mapping class="org.example.User"/>
+        <property name="hibernate.hbm2ddl.auto">create</property>
+        <mapping class="org.example.models.User"/>
 
     </session-factory>
 </hibernate-configuration>

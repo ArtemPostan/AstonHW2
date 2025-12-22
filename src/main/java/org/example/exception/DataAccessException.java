@@ -1,4 +1,4 @@
-package org.example;
+package org.example.exception;
 
 /**
  * Общее исключение, указывающее на ошибку, произошедшую на уровне доступа к данным.
