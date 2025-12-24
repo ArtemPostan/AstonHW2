@@ -90,23 +90,22 @@ public class UserRepository {
     }
 
     public void delete(Long id) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        Transaction transaction = null;
-        try {
-            transaction = session.beginTransaction();
-            User userToDelete = session.get(User.class, id);
+        try(Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Transaction transaction = null;
+            try {
+                transaction = session.beginTransaction();
+                User userToDelete = session.get(User.class, id);
 
-            if (userToDelete != null) {
-                session.remove(userToDelete);
+                if (userToDelete != null) {
+                    session.remove(userToDelete);
+                }
+                transaction.commit();
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                throw new RuntimeException("Error deleting user with ID: " + id, e);
             }
-            transaction.commit();
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
-            throw new RuntimeException("Error deleting user with ID: " + id, e);
-        } finally {
-            session.close();
         }
     }
 }
