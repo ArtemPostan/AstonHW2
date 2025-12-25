@@ -4,6 +4,7 @@ import org.example.models.User;
 import org.example.repository.UserRepository;
 import org.example.services.UserService;
 import org.example.util.HibernateUtil;
+import org.example.exception.DataIntegrityViolationException;
 
 import java.util.Scanner;
 
@@ -46,12 +47,27 @@ public class Main {
     }
 
     private static void handleCreate() {
-        System.out.print("Имя: "); String name = scanner.nextLine();
-        System.out.print("Email: "); String email = scanner.nextLine();
-        System.out.print("Возраст: "); int age = Integer.parseInt(scanner.nextLine());
+        System.out.print("Имя: ");
+        String name = scanner.nextLine();
+        // Если введена пустая строка, передаем null
+        String nameToSave = name.isBlank() ? null : name;
 
-        User user = userService.createUser(name, email, age);
-        System.out.println("Создан с ID: " + user.getId());
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        // Если нажат Enter, передаем null, чтобы сработал nullable = false
+        String emailToSave = email.isBlank() ? null : email;
+
+        System.out.print("Возраст: ");
+        String ageInput = scanner.nextLine();
+        Integer age = ageInput.isBlank() ? null : Integer.parseInt(ageInput);
+
+        try {
+            User user = userService.createUser(nameToSave, emailToSave, age);
+            System.out.println("Создан с ID: " + user.getId());
+        } catch (DataIntegrityViolationException e) {
+            // Теперь вы поймаете ошибку "Поле 'email' обязательно для заполнения"
+            System.out.println("Ошибка валидации: " + e.getMessage());
+        }
     }
 
     private static void handleRead() {
@@ -77,17 +93,19 @@ public class Main {
 
         System.out.print("Новое имя (Enter чтобы оставить " + user.getName() + "): ");
         String name = scanner.nextLine();
-        user.setName(name.isEmpty() ? null : name);
+        if (!name.isEmpty()) {
+            user.setName(name);
+        }
 
         System.out.print("Новый email (Текущий: " + user.getEmail() + "). Enter, чтобы пропустить: ");
         String email = scanner.nextLine();
-        user.setEmail(email.isEmpty() ? null : email);
+        if (!email.isEmpty()) {
+            user.setEmail(email);
+        }
 
         System.out.print("Новый возраст (Текущий: " + user.getAge() + "). Enter, чтобы пропустить: ");
         String ageStr = scanner.nextLine();
-        if (ageStr.isEmpty()) {
-            user.setAge(null); // Записываем null в базу
-        } else {
+        if (!ageStr.isEmpty()) {
             try {
                 user.setAge(Integer.parseInt(ageStr));
             } catch (NumberFormatException e) {
