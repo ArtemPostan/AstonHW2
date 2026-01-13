@@ -3,6 +3,7 @@ package org.example.models;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "users_table")
@@ -11,6 +12,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
+@EqualsAndHashCode(of = "id")
+
 @Builder
 
 public class User {
@@ -27,8 +30,9 @@ public class User {
     @Column(name = "user_age")
     private Integer age;
 
-    @Builder.Default
-    @Column(name = "created_at", updatable = false)
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
 

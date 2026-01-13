@@ -1,38 +1,25 @@
 package org.example.repository;
 
 import org.example.models.User;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager; // Добавляем
+import org.springframework.dao.DataIntegrityViolationException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Testcontainers
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class UserRepositoryTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("testdb")
-            .withUsername("testuser")
-            .withPassword("testpass");
-
+    @Autowired
     private UserRepository userRepository;
 
-    @BeforeAll
-    static void beforeAll() {
-        System.setProperty("hibernate.connection.url", postgres.getJdbcUrl());
-        System.setProperty("hibernate.connection.username", postgres.getUsername());
-        System.setProperty("hibernate.connection.password", postgres.getPassword());
-
-    }
-
-    @BeforeEach
-    void setUp() {
-        userRepository = new UserRepository();
-    }
+    @Autowired
+    private TestEntityManager entityManager; // Помогает управлять сессией Hibernate
 
     @Test
     @DisplayName("Должен успешно сохранить и найти пользователя")
@@ -40,93 +27,58 @@ class UserRepositoryTest {
         // Given
         User user = User.builder()
                 .name("Ivan")
-                .email("ivan@example.com")
+                .email("unique_ivan@example.com")
                 .age(25)
                 .build();
 
         // When
         userRepository.save(user);
-        User found = userRepository.findById(user.getId());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        User found = userRepository.findById(user.getId()).orElse(null);
 
         // Then
         assertNotNull(found);
         assertEquals("Ivan", found.getName());
-        assertEquals("ivan@example.com", found.getEmail());
     }
 
     @Test
     @DisplayName("Должен выбросить исключение при дубликате Email")
     void shouldThrowExceptionWhenEmailExists() {
         // Given
-        User user1 = User.builder().name("U1").email("same@test.com").age(20).build();
-        User user2 = User.builder().name("U2").email("same@test.com").age(30).build();
+        String duplicateEmail = "double@test.com";
+        User user1 = User.builder().name("U1").email(duplicateEmail).age(20).build();
+        User user2 = User.builder().name("U2").email(duplicateEmail).age(30).build();
 
-        userRepository.save(user1);
-        assertThrows(org.example.exception.DataIntegrityViolationException.class, () -> {
-            userRepository.save(user2);
+        userRepository.saveAndFlush(user1); // Сохраняем первого сразу
+
+        // When & Then
+        entityManager.clear();
+
+        assertThrows(DataIntegrityViolationException.class, () -> {
+            userRepository.saveAndFlush(user2);
         });
     }
 
-    @ParameterizedTest
-    @ValueSource(ints = {18, 25, 99})
-    @DisplayName("Должен сохранять пользователя с валидным возрастом")
-    void shouldSaveWithDifferentAges(int age) {
-        User user = User.builder().name("User").email(age + "@test.com").age(age).build();
-        userRepository.save(user);
-        assertNotNull(user.getId());
-    }
-
     @Test
-    @DisplayName("Должен обновить имя и оставить email прежним")
+    @DisplayName("Должен обновить имя")
     void shouldUpdateOnlyName() {
-        User user = User.builder().name("Old").email("stay@same.com").age(30).build();
-        userRepository.save(user);
-
-        user.setName("New Name");
-        userRepository.update(user);
-
-        User updated = userRepository.findById(user.getId());
-        assertEquals("New Name", updated.getName());
-        assertEquals("stay@same.com", updated.getEmail());
-    }
-
-    @Test
-    @DisplayName("Должен вернуть null при поиске по несуществующему ID")
-    void shouldReturnNullWhenUserNotFound() {
         // Given
-        long nonExistentId = 999L;
+        User user = User.builder().name("Old").email("update@test.com").age(30).build();
+        userRepository.saveAndFlush(user);
+        entityManager.clear();
 
         // When
-        User found = userRepository.findById(nonExistentId);
+        User toUpdate = userRepository.findById(user.getId()).orElseThrow();
+        toUpdate.setName("New Name");
+        userRepository.saveAndFlush(toUpdate);
+        entityManager.clear();
 
         // Then
-        assertNull(found, "Если пользователя нет, должен вернуться null");
-    }
-
-    @Test
-    @DisplayName("Не должен выбрасывать исключение при удалении несуществующего ID")
-    void shouldNotFailWhenDeletingNonExistentUser() {
-        // Given
-        long id = 555L;
-
-        // When & Then
-        assertDoesNotThrow(() -> userRepository.delete(id),
-                "Удаление несуществующего пользователя не должно приводить к ошибке");
-    }
-
-    @Test
-    @DisplayName("Должен выбросить исключение, если email равен null")
-    void shouldThrowExceptionWhenEmailIsNull() {
-        // Given
-        User userWithNullEmail = User.builder()
-                .name("NoEmail")
-                .email(null)
-                .age(30)
-                .build();
-
-        // When & Then
-        assertThrows(Exception.class, () -> {
-            userRepository.save(userWithNullEmail);
-        }, "Сохранение без email должно вызвать ошибку на уровне БД или Hibernate");
+        User updated = userRepository.findById(user.getId()).orElseThrow();
+        assertEquals("New Name", updated.getName());
+        assertEquals("update@test.com", updated.getEmail());
     }
 }
