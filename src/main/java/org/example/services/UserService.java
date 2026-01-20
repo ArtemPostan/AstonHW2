@@ -2,9 +2,12 @@ package org.example.services;
 
 import lombok.RequiredArgsConstructor;
 import org.example.dto.UserDTO;
+import org.example.dto.UserEvent;
 import org.example.exception.DataIntegrityViolationException;
 import org.example.models.User;
 import org.example.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,11 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository repository;
+
+    private final KafkaTemplate<String, UserEvent> kafkaTemplate;
+
+    @Value("${app.kafka.topic}")
+    private String topic;
 
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
@@ -32,6 +40,21 @@ public class UserService {
                 .build();
 
         User savedUser = repository.save(user);
+
+        // 3. Создаем событие для Kafka
+        UserEvent event = UserEvent.builder()
+                .email(savedUser.getEmail())
+                .action("CREATE")
+                .build();
+
+        // 4. Отправляем в Kafka
+        try {
+            System.out.println("LOG: Отправка в Kafka топик '" + topic + "' для: " + savedUser.getEmail());
+            kafkaTemplate.send(topic, event);
+            System.out.println("LOG: Успешно отправлено!");
+        } catch (Exception e) {
+            System.err.println("LOG ERROR: Ошибка Kafka: " + e.getMessage());
+        }
         return convertToDTO(savedUser);
     }
 
@@ -61,11 +84,28 @@ public class UserService {
 
     @Transactional
     public boolean delete(long id) {
-        if (repository.existsById(id)) {
-            repository.deleteById(id);
+        // 1. Сначала ищем пользователя, чтобы достать его email
+        return repository.findById(id).map(user -> {
+            String email = user.getEmail();
+
+            // 2. Удаляем из базы
+            repository.delete(user);
+
+            // 3. Отправляем событие удаления в Kafka
+            UserEvent event = UserEvent.builder()
+                    .email(email)
+                    .action("DELETE")
+                    .build();
+
+            try {
+                kafkaTemplate.send(topic, event);
+                System.out.println("LOG: Отправлено событие удаления для: " + email);
+            } catch (Exception e) {
+                System.err.println("LOG ERROR: Не удалось отправить событие удаления: " + e.getMessage());
+            }
+
             return true;
-        }
-        return false;
+        }).orElse(false); // Если id не найден, вернем false
     }
 
 

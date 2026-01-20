@@ -81,4 +81,17 @@ class UserRepositoryTest {
         assertEquals("New Name", updated.getName());
         assertEquals("update@test.com", updated.getEmail());
     }
+
+    @Test
+    @DisplayName("Должен подтвердить существование email")
+    void shouldCheckExistsByEmail() {
+        String email = "exists@test.com";
+        userRepository.saveAndFlush(User.builder().name("Test").email(email).build());
+
+        boolean exists = userRepository.existsByEmail(email);
+        boolean notExists = userRepository.existsByEmail("wrong@test.com");
+
+        assertTrue(exists);
+        assertFalse(notExists);
+    }
 }
