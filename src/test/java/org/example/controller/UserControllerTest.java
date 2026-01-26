@@ -1,22 +1,21 @@
 package org.example.controller;
 
-import org.example.controller.UserController;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.dto.UserDTO;
 import org.example.services.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @WebMvcTest(UserController.class)
 class UserControllerTest {
@@ -27,7 +26,9 @@ class UserControllerTest {
     @MockBean
     private UserService userService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // Используем стандартный ObjectMapper из Spring
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void shouldReturnAllUsers() throws Exception {
@@ -36,8 +37,11 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Ivan"));
+                // В HATEOAS (CollectionModel) данные лежат в _embedded.userDTOList
+                .andExpect(jsonPath("$._embedded.userDTOList.length()").value(1))
+                .andExpect(jsonPath("$._embedded.userDTOList[0].name").value("Ivan"))
+                // Проверяем наличие ссылок в коллекции
+                .andExpect(jsonPath("$._links.self.href").exists());
     }
 
     @Test
@@ -47,12 +51,17 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("ivan@mail.com"));
+                .andExpect(jsonPath("$.email").value("ivan@mail.com"))
+                // Проверяем HATEOAS ссылки для конкретного юзера
+                .andExpect(jsonPath("$._links.self.href").value("http://localhost/api/users/1"))
+                .andExpect(jsonPath("$._links.delete.href").exists())
+                .andExpect(jsonPath("$._links.all-users.href").exists());
     }
 
     @Test
     void shouldReturn404WhenUserNotFound() throws Exception {
-        when(userService.findById(99L)).thenReturn(null);
+        // Если твой сервис кидает RuntimeException, когда юзер не найден
+        when(userService.findById(99L)).thenThrow(new RuntimeException("Not found"));
 
         mockMvc.perform(get("/api/users/99"))
                 .andExpect(status().isNotFound());
@@ -60,8 +69,8 @@ class UserControllerTest {
 
     @Test
     void shouldCreateUser() throws Exception {
-        UserDTO inputUser = UserDTO.builder().name("New").email("new@mail.com").build();
-        UserDTO savedUser = UserDTO.builder().id(1L).name("New").email("new@mail.com").build();
+        UserDTO inputUser = UserDTO.builder().name("New").email("new@mail.com").age(25).build();
+        UserDTO savedUser = UserDTO.builder().id(1L).name("New").email("new@mail.com").age(25).build();
 
         when(userService.createUser(any(UserDTO.class))).thenReturn(savedUser);
 

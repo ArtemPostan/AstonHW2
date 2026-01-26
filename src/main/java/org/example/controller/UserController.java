@@ -1,9 +1,14 @@
 package org.example.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.UserDTO;
 import org.example.services.UserService;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,34 +18,49 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Tag(name = "Пользователи", description = "Управление данными пользователей")
 public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "Получить список всех пользователей")
     @GetMapping
-    public List<UserDTO> getAll() {
-        return userService.findAll();
+    public CollectionModel<UserDTO> getAll() {
+        List<UserDTO> users = userService.findAll();
+
+        for (UserDTO user : users) {
+            user.add(linkTo(methodOn(UserController.class).getById(user.getId())).withSelfRel());
+        }
+        return CollectionModel.of(users,
+                linkTo(methodOn(UserController.class).getAll()).withSelfRel());
     }
 
+    @Operation(summary = "Получить пользователя по id")
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
+    public UserDTO getById(@PathVariable Long id) {
         UserDTO user = userService.findById(id);
-        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
+
+        user.add(linkTo(methodOn(UserController.class).getById(id)).withSelfRel());
+        user.add(linkTo(methodOn(UserController.class).getAll()).withRel("all-users"));
+        user.add(linkTo(methodOn(UserController.class).delete(id)).withRel("delete"));
+        return user;
     }
 
+    @Operation(summary = "Создать пользователя")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDTO create(@Valid @RequestBody UserDTO userDTO) {
         return userService.createUser(userDTO);
     }
 
-
+    @Operation(summary = "Обновить данные пользователя")
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable Long id, @RequestBody UserDTO userDTO) {
         userService.update(id, userDTO);
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Удалить пользователя")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         boolean deleted = userService.delete(id);

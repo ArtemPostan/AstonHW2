@@ -4,12 +4,14 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+import org.springframework.hateoas.RepresentationModel;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDTO {
+@EqualsAndHashCode(callSuper = false)
+public class UserDTO extends RepresentationModel<UserDTO> {
     private Long id;
 
     @NotBlank(message = "Имя не может быть пустым")

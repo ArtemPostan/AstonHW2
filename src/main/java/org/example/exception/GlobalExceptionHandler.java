@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
 
-        if (ex.getMessage().contains("not found")) {
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("not found")) {
             body.put("status", HttpStatus.NOT_FOUND.value());
             body.put("error", "Resource Not Found");
             body.put("message", ex.getMessage());
@@ -59,4 +59,5 @@ public class GlobalExceptionHandler {
         body.put("message", "Произошла непредвиденная ошибка");
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 }
