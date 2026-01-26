@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.services.UserService;
 
 @Data
 @AllArgsConstructor
@@ -11,5 +12,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UserEvent {
     private String email;
-    private String action; // Будет "CREATE" или "DELETE"
+    private UserAction action; // Будет "CREATE" или "DELETE"
 }

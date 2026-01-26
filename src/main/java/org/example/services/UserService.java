@@ -1,6 +1,7 @@
 package org.example.services;
 
 import lombok.RequiredArgsConstructor;
+import org.example.dto.UserAction;
 import org.example.dto.UserDTO;
 import org.example.dto.UserEvent;
 import org.example.exception.DataIntegrityViolationException;
@@ -44,7 +45,7 @@ public class UserService {
         // 3. Создаем событие для Kafka
         UserEvent event = UserEvent.builder()
                 .email(savedUser.getEmail())
-                .action("CREATE")
+                .action(UserAction.CREATE)
                 .build();
 
         // 4. Отправляем в Kafka
@@ -94,7 +95,7 @@ public class UserService {
             // 3. Отправляем событие удаления в Kafka
             UserEvent event = UserEvent.builder()
                     .email(email)
-                    .action("DELETE")
+                    .action(UserAction.DELETE)
                     .build();
 
             try {
@@ -117,4 +118,6 @@ public class UserService {
                 .age(user.getAge())
                 .build();
     }
+
+
 }
