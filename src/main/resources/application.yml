@@ -1,34 +1,6 @@
 spring:
-  datasource:
-    # URL для подключения к твоей БД (замени hw2_db на имя своей базы)
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: root
-    driver-class-name: org.postgresql.Driver
+  application:
+    name: user-service
 
-  jpa:
-    # Аналог hibernate.dialect. Позволяет JPA "общаться" на языке PostgreSQL
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-
-    # Настройки Hibernate
-    hibernate:
-      # ddl-auto:
-      # update - обновляет схему БД (добавляет колонки)
-      # create-drop - создает таблицы при старте и удаляет при выходе (удобно для тестов)
-      ddl-auto: update
-
-    # Показывать ли SQL-запросы в консоли (удобно для отладки)
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-app:
-  kafka:
-    topic: user-topic
+  config:
+    import: "optional:configserver:http://localhost:8888"
