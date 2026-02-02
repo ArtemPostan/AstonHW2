@@ -13,7 +13,6 @@ import org.hibernate.annotations.CreationTimestamp;
 @AllArgsConstructor
 @ToString
 @EqualsAndHashCode(of = "id")
-
 @Builder
 
 public class User {

@@ -1,6 +1,7 @@
 package org.example.services;
 
 import org.example.dto.UserDTO;
+import org.example.dto.UserEvent;
 import org.example.models.User;
 import org.example.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -17,6 +20,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
+    @Mock
+    private KafkaTemplate<String, UserEvent> kafkaTemplate;
 
     @Mock
     private UserRepository userRepository;
@@ -27,6 +32,7 @@ class UserServiceTest {
     @Test
     @DisplayName("Должен успешно создать пользователя и вернуть DTO")
     void shouldCreateUserSuccessfully() {
+        ReflectionTestUtils.setField(userService, "topic", "users-topic");
         // Given
         UserDTO inputDto = UserDTO.builder()
                 .name("Ivan")
@@ -49,7 +55,9 @@ class UserServiceTest {
         // Then
         assertNotNull(result.getId());
         assertEquals("Ivan", result.getName());
+        assertEquals("ivan@mail.com", result.getEmail());
         verify(userRepository).save(any(User.class));
+        verify(kafkaTemplate).send(eq("users-topic"), any(UserEvent.class));
     }
 
     @Test
@@ -100,17 +108,22 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Должен вернуть true, если удаление прошло успешно")
-    void shouldReturnTrueWhenDeleteSuccessful() {
+    @DisplayName("Должен вернуть false и ничего не удалять, если пользователь не найден")
+    void shouldReturnFalseWhenUserDoesNotExist() {
         // Given
-        long id = 1L;
-        when(userRepository.existsById(id)).thenReturn(true);
+        long id = 999L;
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         // When
         boolean result = userService.delete(id);
 
         // Then
-        assertTrue(result);
-        verify(userRepository).deleteById(id);
+        assertFalse(result, "Метод должен вернуть false, если пользователя нет");
+
+        verify(userRepository, never()).delete(any(User.class));
+
+        verify(kafkaTemplate, never()).send(anyString(), any(UserEvent.class));
+
+        verify(userRepository).findById(id);
     }
 }

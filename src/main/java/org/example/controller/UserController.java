@@ -3,6 +3,10 @@ package org.example.controller;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +39,13 @@ public class UserController {
                 linkTo(methodOn(UserController.class).getAll()).withSelfRel());
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Пользователь найден",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UserDTO.class)) }),
+            @ApiResponse(responseCode = "404", description = "Пользователь не найден",
+                    content = @Content)
+    })
     @Operation(summary = "Получить пользователя по id")
     @GetMapping("/{id}")
     public UserDTO getById(@PathVariable Long id) {
@@ -46,6 +57,13 @@ public class UserController {
         return user;
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Пользователь создан",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UserDTO.class)) }),
+            @ApiResponse(responseCode = "400", description = "Не верные данные пользователя",
+                    content = @Content)
+    })
     @Operation(summary = "Создать пользователя")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

@@ -5,6 +5,7 @@ import org.example.dto.UserAction;
 import org.example.dto.UserDTO;
 import org.example.dto.UserEvent;
 import org.example.exception.DataIntegrityViolationException;
+import org.example.exception.UserAlreadyExistsException;
 import org.example.models.User;
 import org.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +30,7 @@ public class UserService {
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
         if (repository.existsByEmail(userDTO.getEmail())) {
-            throw new DataIntegrityViolationException(
+            throw new UserAlreadyExistsException(
                     "Пользователь с email " + userDTO.getEmail() + " уже существует"
             );
         }
